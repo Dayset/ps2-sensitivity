@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlanetSide 2 Sensitivity Calculator</title>
+<style>
+  :root { --bg:#0e1116; --card:#171c24; --line:#2a3140; --txt:#dfe6f2; --dim:#8b95a9;
+          --acc:#6cb2ff; --warn:#ffb454; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+         margin:0; padding:24px 16px 64px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:1.6rem; margin:0 0 4px; }
+  .sub { color:var(--dim); margin:0 0 20px; font-size:.95rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:16px 18px; margin:14px 0; }
+  .card h2 { font-size:1.05rem; margin:0 0 2px; }
+  .card .ini { color:var(--dim); font-size:.82rem; font-family:ui-monospace,Consolas,monospace; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  label { font-size:.85rem; color:var(--dim); }
+  input[type=text], select { background:#0b0e13; color:var(--txt); border:1px solid var(--line);
+      border-radius:8px; padding:9px 10px; font-size:1rem; }
+  input[type=text] { width:150px; }
+  select { max-width:230px; }
+  .arrow { color:var(--dim); font-size:1.2rem; }
+  .hint { font-size:.8rem; color:var(--dim); margin-top:8px; }
+  .warn { color:var(--warn); } .bad { color:var(--bad); }
+  .topbar { display:flex; gap:14px; align-items:end; flex-wrap:wrap; margin-bottom:6px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { background:transparent; color:var(--dim); border:0; padding:9px 14px; cursor:pointer; font-size:.95rem; }
+  .seg button.on { background:var(--acc); color:#0b0e13; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; margin-top:10px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; }
+  td.num { font-variant-numeric:tabular-nums; }
+  tr.me td { color:var(--acc); font-weight:600; }
+  pre.ini { background:#0b0e13; border:1px solid var(--line); border-radius:8px; padding:12px;
+            font-size:.9rem; overflow-x:auto; }
+  button.copy, button.example { background:#222a38; color:var(--txt); border:1px solid var(--line);
+      border-radius:8px; padding:8px 14px; cursor:pointer; font-size:.9rem; }
+  button.copy:hover, button.example:hover { border-color:var(--acc); }
+  .notes { font-size:.88rem; color:#c3ccdd; line-height:1.55; }
+  .notes li { margin-bottom:7px; }
+  .notes code { background:#0b0e13; padding:1px 6px; border-radius:5px; font-size:.85em; }
+  footer { color:var(--dim); font-size:.8rem; margin-top:26px; }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PlanetSide 2 Sensitivity Calculator</h1>
+  <p class="sub">DPI + cm/360 &harr; in-game sensitivity, both directions. Type in either box of a row and the other follows.</p>
+
+  <div class="card">
+    <div class="topbar">
+      <div>
+        <label for="dpi">Mouse DPI</label><br>
+        <input type="text" inputmode="numeric" id="dpi" value="800" autocomplete="off">
+      </div>
+      <div>
+        <label>Turn-distance unit</label><br>
+        <span class="seg" id="unitseg">
+          <button data-u="cm" class="on">cm / 360&deg;</button><button data-u="in">in / 360&deg;</button>
+        </span>
+      </div>
+      <div>
+        <label>&nbsp;</label><br>
+        <button class="example" id="example">Load example: 800 DPI, ~15 cm hipfire</button>
+      </div>
+    </div>
+    <div class="hint">Changing DPI keeps your sensitivities and recomputes the turn distances.</div>
+  </div>
+
+  <div class="card" id="card-hip">
+    <h2>Hipfire</h2>
+    <div class="ini">UserOptions.ini &rarr; MouseSensitivity</div>
+    <div class="row">
+      <div><label>Sensitivity (0&ndash;1)</label><br><input type="text" inputmode="decimal" id="hip-sens" autocomplete="off"></div>
+      <div class="arrow">&harr;</div>
+      <div><label>Turn distance (<span class="u">cm</span>/360&deg;)</label><br><input type="text" inputmode="decimal" id="hip-turn" autocomplete="off"></div>
+    </div>
+    <div class="hint" id="hip-hint"></div>
+  </div>
+
+  <div class="card" id="card-ads">
+    <h2>ADS &mdash; ironsights, 1&times;, 2&times;, IRNV</h2>
+    <div class="ini">UserOptions.ini &rarr; ADSMouseSensitivity</div>
+    <div class="row">
+      <div><label>Sensitivity (0&ndash;1)</label><br><input type="text" inputmode="decimal" id="ads-sens" autocomplete="off"></div>
+      <div class="arrow">&harr;</div>
+      <div><label>Turn distance (<span class="u">cm</span>/360&deg;)</label><br><input type="text" inputmode="decimal" id="ads-turn" autocomplete="off"></div>
+      <div><label>for scope</label><br>
+        <select id="ads-scope">
+          <option value="1.35" selected>Ironsights / 1&times; Reflex (1.35&times;)</option>
+          <option value="2">2&times; Reflex (2&times;)</option>
+          <option value="1.35">IRNV (1&times; class)</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint" id="ads-hint"></div>
+  </div>
+
+  <div class="card" id="card-scoped">
+    <h2>Scoped &mdash; 3.4&times; and above</h2>
+    <div class="ini">UserOptions.ini &rarr; ScopedMouseSensitivity</div>
+    <div class="row">
+      <div><label>Sensitivity (0&ndash;1)</label><br><input type="text" inputmode="decimal" id="scoped-sens" autocomplete="off"></div>
+      <div class="arrow">&harr;</div>
+      <div><label>Turn distance (<span class="u">cm</span>/360&deg;)</label><br><input type="text" inputmode="decimal" id="scoped-turn" autocomplete="off"></div>
+      <div><label>for scope</label><br>
+        <select id="scoped-scope">
+          <option value="3.4">3.4&times;</option>
+          <option value="4">4&times;</option>
+          <option value="6" selected>6&times;</option>
+          <option value="7">7&times;</option>
+          <option value="8">8&times;</option>
+          <option value="10">10&times;</option>
+          <option value="12">12&times;</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint" id="scoped-hint"></div>
+  </div>
+
+  <div class="card">
+    <h2>What every scope feels like with these settings</h2>
+    <div class="hint">Turn distance per optic, from your three sensitivities above. Highlighted rows match the scopes you picked.</div>
+    <table id="allscopes">
+      <thead><tr><th>Mode</th><th>Scope</th><th class="num">cm/360&deg;</th><th class="num">in/360&deg;</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>UserOptions.ini snippet</h2>
+    <pre class="ini" id="inisnip"></pre>
+    <button class="copy" id="copyini">Copy</button>
+    <span class="hint" id="copymsg"></span>
+  </div>
+
+  <div class="card notes">
+    <h2>How the math works</h2>
+    <ul>
+      <li>Three separate sliders: <code>MouseSensitivity</code> (hipfire only), <code>ADSMouseSensitivity</code> (ironsights, 1&times;, 2&times;, IRNV), <code>ScopedMouseSensitivity</code> (3.4&times; and up).</li>
+      <li>ADSing multiplies your turn distance by <b>1.6</b>, then again by the sight's magnification. So a 1&times; reflex at the same sens value as hipfire needs <b>1.6 &times; 1.35 = 2.16&times;</b> the mouse travel; a 6&times; scope needs <b>1.6 &times; 6 = 9.6&times;</b>.</li>
+      <li>The <b>1.35&times;</b> on ironsights/1&times; is a fixed built-in magnification, <b>not</b> derived from your FOV. Your in-game FOV changes how zoomed the game <i>looks</i> and feels, but it does not change any cm/360 number on this page.</li>
+      <li>PS2's sensitivity curve is <b>not linear</b>: halving the slider value more than doubles the turn distance. The curve used here (<code>turn = 1332.6 &times; mult / (DPI &times; sens<sup>1.4166</sup>)</code>) is reverse-engineered from mouse-sensitivity.com's PS2 data and Iridar's published settings, matching them within a few percent. Sanity-check it with a real ruler 360 before trusting it blindly.</li>
+      <li>In-game sliders move in steps of 0.004; UserOptions.ini accepts six decimals, which is what the snippet above gives you.</li>
+      <li>Enable <i>Use Raw Mouse Input</i> and disable mouse acceleration, or none of these numbers mean anything.</li>
+    </ul>
+    <footer>Sources: Iridar's PlanetSide 2 Mouse Sensitivity Guide (1.6&times;mag rule, 1.35&times; secret magnification, slider scope mapping, FOV-independence); mouse-sensitivity.com community PS2 conversion data (base curve anchor: 94.07 cm/360 at 800 DPI / 0.058).</footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ---- PS2 turn-distance model (reverse-engineered, see notes) ----
+//   turn_cm = K * mult / (dpi * sens^P)
+//   hipfire: mult = 1 ; ADS/scoped: mult = 1.6 * scope_magnification
+const K = 1332.6, P = 1.4166, ADS_FACTOR = 1.6, CM_PER_IN = 2.54;
+
+let unit = "cm"; // or "in"
+const $ = id => document.getElementById(id);
+const dpi = () => Math.max(1, parseFloat($("dpi").value) || 800);
+
+function sensToTurn(sens, dpiV, mult) {
+  if (!(sens > 0) || !(dpiV > 0)) return Infinity;
+  return K * mult / (dpiV * Math.pow(sens, P));
+}
+function turnToSens(turnCm, dpiV, mult) {
+  if (!(turnCm > 0) || !(dpiV > 0)) return 0;
+  return Math.pow(K * mult / (dpiV * turnCm), 1 / P);
+}
+const toCm = v => unit === "cm" ? v : v * CM_PER_IN;      // display -> cm
+const fromCm = v => unit === "cm" ? v : v / CM_PER_IN;    // cm -> display
+const fmtTurn = v => !isFinite(v) ? "" : (unit === "cm" ? v.toFixed(1) : v.toFixed(2));
+const fmtSens = v => !isFinite(v) ? "" : (+v.toFixed(6)).toString();
+
+const rows = [
+  { sens: $("hip-sens"), turn: $("hip-turn"), hint: $("hip-hint"),
+    mult: () => 1, name: "hipfire" },
+  { sens: $("ads-sens"), turn: $("ads-turn"), hint: $("ads-hint"),
+    mult: () => ADS_FACTOR * parseFloat($("ads-scope").value), name: "ADS" },
+  { sens: $("scoped-sens"), turn: $("scoped-turn"), hint: $("scoped-hint"),
+    mult: () => ADS_FACTOR * parseFloat($("scoped-scope").value), name: "scoped" },
+];
+
+function checkHint(row) {
+  const s = parseFloat(row.sens.value);
+  if (row.sens.value === "" || isNaN(s)) { row.hint.textContent = ""; return; }
+  if (s <= 0) row.hint.innerHTML = '<span class="bad">Sensitivity 0 means no turning at all.</span>';
+  else if (s > 1) row.hint.innerHTML = '<span class="warn">Above 1.0 &mdash; the ini only accepts 0 to 1.</span>';
+  else {
+    const step = Math.round(s / 0.004) * 0.004;
+    row.hint.textContent = "Nearest in-game slider step: " + step.toFixed(3);
+  }
+}
+
+let lock = false;
+function refreshFromSens(row) {
+  const s = parseFloat(row.sens.value);
+  row.turn.value = fmtTurn(fromCm(sensToTurn(s, dpi(), row.mult())));
+  checkHint(row);
+}
+function refreshFromTurn(row) {
+  const t = toCm(parseFloat(row.turn.value));
+  row.sens.value = fmtSens(turnToSens(t, dpi(), row.mult()));
+  checkHint(row);
+}
+
+rows.forEach(row => {
+  row.sens.addEventListener("input", () => { if (lock) return; lock = true; refreshFromSens(row); lock = false; renderAll(); });
+  row.turn.addEventListener("input", () => { if (lock) return; lock = true; refreshFromTurn(row); lock = false; renderAll(); });
+});
+$("dpi").addEventListener("input", () => { rows.forEach(refreshFromSens); renderAll(); });
+$("ads-scope").addEventListener("change", () => { refreshFromSens(rows[1]); renderAll(); });
+$("scoped-scope").addEventListener("change", () => { refreshFromSens(rows[2]); renderAll(); });
+$("unitseg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  unit = b.dataset.u;
+  document.querySelectorAll("#unitseg button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".u").forEach(x => x.textContent = unit);
+  rows.forEach(refreshFromSens); renderAll();
+});
+
+// ---- overview table: every scope from the three sens values ----
+const ADS_SCOPES = [["Ironsights / 1\u00d7", 1.35], ["2\u00d7 Reflex", 2], ["IRNV", 1.35]];
+const SCOPED_SCOPES = [["3.4\u00d7", 3.4], ["4\u00d7", 4], ["6\u00d7", 6], ["7\u00d7", 7], ["8\u00d7", 8], ["10\u00d7", 10], ["12\u00d7", 12]];
+
+function renderAll() {
+  const d = dpi();
+  const sHip = parseFloat(rows[0].sens.value), sAds = parseFloat(rows[1].sens.value), sSc = parseFloat(rows[2].sens.value);
+  const selAds = parseFloat($("ads-scope").value), selSc = parseFloat($("scoped-scope").value);
+  const tb = document.querySelector("#allscopes tbody");
+  tb.innerHTML = "";
+  const add = (mode, label, mag, sens, me) => {
+    const t = sensToTurn(sens, d, mag === 1 ? 1 : ADS_FACTOR * mag);
+    const tr = document.createElement("tr");
+    if (me) tr.className = "me";
+    tr.innerHTML = "<td>" + mode + "</td><td>" + label + "</td>" +
+      '<td class="num">' + (isFinite(t) ? t.toFixed(1) : "\u2014") + "</td>" +
+      '<td class="num">' + (isFinite(t) ? (t / CM_PER_IN).toFixed(2) : "\u2014") + "</td>";
+    tb.appendChild(tr);
+  };
+  add("Hipfire", "\u2014", 1, sHip, true);
+  ADS_SCOPES.forEach(([label, mag]) => add("ADS", label, mag, sAds, mag === selAds));
+  SCOPED_SCOPES.forEach(([label, mag]) => add("Scoped", label, mag, sSc, mag === selSc));
+
+  const f = v => { const n = parseFloat(v); return isFinite(n) ? n.toFixed(6) : "0.000000"; };
+  $("inisnip").textContent =
+    "MouseSensitivity=" + f(rows[0].sens.value) + "\n" +
+    "ADSMouseSensitivity=" + f(rows[1].sens.value) + "\n" +
+    "ScopedMouseSensitivity=" + f(rows[2].sens.value);
+}
+
+$("copyini").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("inisnip").textContent); $("copymsg").textContent = "copied"; }
+  catch { $("copymsg").textContent = "copy failed \u2014 select the text manually"; }
+  setTimeout(() => $("copymsg").textContent = "", 2000);
+});
+
+$("example").addEventListener("click", () => {
+  $("dpi").value = 800;
+  $("ads-scope").value = "1.35"; $("scoped-scope").value = "6";
+  rows[0].sens.value = "0.212"; rows[1].sens.value = "0.228"; rows[2].sens.value = "0.3";
+  rows.forEach(r => { refreshFromSens(r); });
+  renderAll();
+});
+
+// init with the example values
+$("example").click();
+</script>
+</body>
+</html>
